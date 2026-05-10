@@ -467,64 +467,65 @@ const Plotter = {
     ];
     const yLine = xLine.map(x => m*x+b);
 
-    const eq = `y = ${m.toFixed(4)}x + ${b.toFixed(4)}`;
-    const ann = `R²=${metrics.r2.toFixed(4)}  RMSE=${metrics.rmse.toFixed(4)}  MAE=${metrics.mae.toFixed(4)}\nMAPE=${metrics.mape.toFixed(2)}%  Bias=${metrics.bias.toFixed(4)}  r=${metrics.pearson.toFixed(4)}`;
-
+    const eq  = `y = ${m.toFixed(4)}x + ${b.toFixed(4)}`;
+    const ann = `R²=${metrics.r2.toFixed(4)}  RMSE=${metrics.rmse.toFixed(4)}  MAE=${metrics.mae.toFixed(4)}<br>MAPE=${metrics.mape.toFixed(2)}%  Bias=${metrics.bias.toFixed(4)}  r=${metrics.pearson.toFixed(4)}`;
     Plotly.newPlot(divId, [
-      { x:xs, y:ys, mode:'markers', name:'Data', marker:{size:5, color:'#1a5276', opacity:0.6} },
-      { x:xLine, y:yLine, mode:'lines', name:'Fit', line:{color:'red', width:2} },
+      { x:xs, y:ys, mode:'markers', name:'Data', marker:{size:5, color:'#FF4500', opacity:0.65} },
+      { x:xLine, y:yLine, mode:'lines', name:'Fit', line:{color:'#ffffff', width:1.5} },
     ], {
-      title: `${param} — Simple Linear Regression`,
-      xaxis:{ title:`${param} Sensor`, zeroline:false },
-      yaxis:{ title:`${param} Reference`, zeroline:false },
-      annotations:[{
-        xref:'paper',yref:'paper',x:0.02,y:0.98,xanchor:'left',yanchor:'top',
-        text: eq + '<br>' + ann.replace(/\n/,'<br>'),
-        showarrow:false, font:{size:11}, bgcolor:'rgba(255,255,255,0.8)',
-        bordercolor:'#ccc', borderwidth:1,
-      }],
-      margin:{t:50,b:50,l:60,r:20}, legend:{orientation:'h'},
+      paper_bgcolor:'#0a0a0a', plot_bgcolor:'#0a0a0a',
+      font:{color:'#aaa', family:'JetBrains Mono, monospace', size:11},
+      title:{ text:`${param} \u2014 Simple Linear Regression`, font:{color:'#e0e0e0', size:13} },
+      xaxis:{ title:`${param} Sensor`, zeroline:false, gridcolor:'#1e1e1e', color:'#888' },
+      yaxis:{ title:`${param} Reference`, zeroline:false, gridcolor:'#1e1e1e', color:'#888' },
+      annotations:[{ xref:'paper', yref:'paper', x:0.02, y:0.98, xanchor:'left', yanchor:'top',
+        text: eq + '<br>' + ann, showarrow:false,
+        font:{size:10, color:'#ccc', family:'JetBrains Mono, monospace'},
+        bgcolor:'rgba(20,20,20,0.9)', bordercolor:'#333', borderwidth:1 }],
+      margin:{t:45,b:45,l:60,r:20}, legend:{orientation:'h', font:{color:'#888'}},
     }, {responsive:true});
   },
 
   scatter_mlr(divId, yTrue, yPred, metrics, param) {
-    const mn = [...yTrue, ...yPred].reduce((a,v) => v < a ? v : a, Infinity);
-    const mx = [...yTrue, ...yPred].reduce((a,v) => v > a ? v : a, -Infinity);
+    const mn  = [...yTrue, ...yPred].reduce((a,v) => v < a ? v : a, Infinity);
+    const mx  = [...yTrue, ...yPred].reduce((a,v) => v > a ? v : a, -Infinity);
     const ann = `R²=${metrics.r2.toFixed(4)}  RMSE=${metrics.rmse.toFixed(4)}<br>MAE=${metrics.mae.toFixed(4)}  r=${metrics.pearson.toFixed(4)}`;
-
     Plotly.newPlot(divId, [
-      { x:yTrue, y:yPred, mode:'markers', name:'Predicted vs Reference', marker:{size:5, color:'#27ae60', opacity:0.6} },
-      { x:[mn,mx], y:[mn,mx], mode:'lines', name:'1:1 line', line:{color:'gray', dash:'dash', width:1.5} },
+      { x:yTrue, y:yPred, mode:'markers', name:'Predicted vs Reference', marker:{size:5, color:'#00C896', opacity:0.65} },
+      { x:[mn,mx], y:[mn,mx], mode:'lines', name:'1:1 line', line:{color:'#555', dash:'dash', width:1.5} },
     ], {
-      title: `${param} — MLR Predicted vs Reference`,
-      xaxis:{ title:'Reference', zeroline:false },
-      yaxis:{ title:'MLR Predicted', zeroline:false },
-      annotations:[{
-        xref:'paper',yref:'paper',x:0.02,y:0.98,xanchor:'left',yanchor:'top',
-        text:ann, showarrow:false, font:{size:11},
-        bgcolor:'rgba(255,255,255,0.8)', bordercolor:'#ccc', borderwidth:1,
-      }],
-      margin:{t:50,b:50,l:60,r:20},
+      paper_bgcolor:'#0a0a0a', plot_bgcolor:'#0a0a0a',
+      font:{color:'#aaa', family:'JetBrains Mono, monospace', size:11},
+      title:{ text:`${param} \u2014 MLR Predicted vs Reference`, font:{color:'#e0e0e0', size:13} },
+      xaxis:{ title:'Reference', zeroline:false, gridcolor:'#1e1e1e', color:'#888' },
+      yaxis:{ title:'MLR Predicted', zeroline:false, gridcolor:'#1e1e1e', color:'#888' },
+      annotations:[{ xref:'paper', yref:'paper', x:0.02, y:0.98, xanchor:'left', yanchor:'top',
+        text:ann, showarrow:false, font:{size:10, color:'#ccc', family:'JetBrains Mono, monospace'},
+        bgcolor:'rgba(20,20,20,0.9)', bordercolor:'#333', borderwidth:1 }],
+      margin:{t:45,b:45,l:60,r:20}, legend:{orientation:'h', font:{color:'#888'}},
     }, {responsive:true});
   },
 
   timeseries(divId, timestamps, refVals, rawSensor, simpleCal, mlrCal, param) {
     const ts = timestamps.map(t => t.toISOString());
     Plotly.newPlot(divId, [
-      { x:ts, y:refVals,   mode:'lines', name:'Reference',     line:{color:'red', dash:'solid', width:2.5} },
-      { x:ts, y:rawSensor, mode:'lines', name:'Raw Sensor',               line:{color:'blue', dash:'solid', width:1.5} },
-      { x:ts, y:simpleCal, mode:'lines', name:'Simple Linear Calibrated', line:{color:'green', dash:'dash',  width:1.5} },
-      { x:ts, y:mlrCal,    mode:'lines', name:'MLR Calibrated',           line:{color:'orange', dash:'dot',   width:1.5} },
+      { x:ts, y:refVals,   mode:'lines', name:'Reference',            line:{color:'#FF4136', dash:'solid', width:2.5} },
+      { x:ts, y:rawSensor, mode:'lines', name:'Raw Sensor',           line:{color:'#0074D9', dash:'solid', width:1.5} },
+      { x:ts, y:simpleCal, mode:'lines', name:'Simple Linear Calib.', line:{color:'#2ECC40', dash:'dash',  width:1.5} },
+      { x:ts, y:mlrCal,    mode:'lines', name:'MLR Calibrated',       line:{color:'#FF851B', dash:'dot',   width:1.5} },
     ], {
-      title: `${param} — Time Series`,
-      xaxis:{ title:'Time', type:'date', rangeslider:{visible:true} },
-      yaxis:{ title:param, zeroline:false },
+      paper_bgcolor:'#0a0a0a', plot_bgcolor:'#0a0a0a',
+      font:{color:'#aaa', family:'JetBrains Mono, monospace', size:11},
+      title:{ text:`${param} \u2014 Time Series`, font:{color:'#e0e0e0', size:13} },
+      xaxis:{ title:'Time', type:'date', rangeslider:{visible:true, bgcolor:'#111'}, gridcolor:'#1e1e1e', color:'#888' },
+      yaxis:{ title:param, zeroline:false, gridcolor:'#1e1e1e', color:'#888' },
       showlegend: true,
-      legend:{ orientation:'h', x:0, y:-1.5, bgcolor:'rgba(255,255,255,0.8)', bordercolor:'#ccc', borderwidth:1 },
-      margin:{t:50,b:150,l:60,r:20},
+      legend:{ orientation:'h', x:0, y:-1.3, bgcolor:'rgba(10,10,10,0.9)', bordercolor:'#333', borderwidth:1, font:{color:'#aaa'} },
+      margin:{t:45,b:150,l:60,r:20},
     }, {responsive:true});
   },
 };
+
 
 /* ── EXPORTER ────────────────────────────────────────────── */
 const Exporter = {
@@ -717,6 +718,10 @@ function doMerge() {
   document.getElementById('refShiftVal').textContent    = '0';
   if (!State.mergedData.length) { UI.fail('No matching timestamps — reference may have no overlap with sensor range, or check your data.'); return; }
   UI.pass('Merged rows: '+State.mergedData.length);
+  // Show the preview card
+  const s6 = document.getElementById('step6Section');
+  s6.style.display = '';
+  s6.classList.remove('locked');
   renderMergePreview(State.mergedData);
   UI.progress(75);
   UI.step('Step 7: Running calibration analysis…');
@@ -724,8 +729,8 @@ function doMerge() {
   renderAnalysis();
   UI.pass('Calibration analysis complete');
   UI.unlock('step7Section');
-  UI.unlock('step8Section');
-  UI.unlock('step9Section');
+  // Show alignment + download toolbar (utility strip, not a step)
+  document.getElementById('alignToolbar').style.display = 'flex';
   document.getElementById('downloadCSV').disabled   = false;
   document.getElementById('downloadExcel').disabled = false;
   UI.progress(100);
@@ -826,6 +831,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('downloadExcel').addEventListener('click', () => {
     Exporter.toExcel(Aligner.apply(State.mergedData, State.sensorShift, State.refShift));
+  });
+
+  // Info panel toggle
+  document.getElementById('infoToggle').addEventListener('click', () => {
+    document.getElementById('infoPanel').classList.toggle('open');
   });
 
   UI.log('Tool ready. Select parameters to begin.', 'log-info');
