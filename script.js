@@ -234,13 +234,18 @@ const Validator = {
 const Resampler = {
 
   resample(data, intervalSec) {
-    const ms   = intervalSec * 1000;
+    const ms      = intervalSec * 1000;
+    // getTimezoneOffset() is negative for UTC+ zones (e.g. IST = -330 min).
+    // Subtracting it shifts t into a "local epoch" so that floor() snaps to
+    // LOCAL midnight / local hour / local minute boundaries, not UTC ones.
+    const tzOffMs = new Date().getTimezoneOffset() * 60000; // e.g. -19800000 for IST
     const bins = {};
 
     data.forEach(row => {
-      const t   = row.Timestamp.getTime();
-      // interval-end label: ceil to next bin boundary
-      const key = Math.ceil(t / ms) * ms;
+      const t      = row.Timestamp.getTime();
+      const localT = t - tzOffMs;               // express t in local-time ms
+      // interval-end bin label in local time, then convert back to UTC ms
+      const key    = Math.floor(localT / ms) * ms + ms + tzOffMs;
       if (!bins[key]) bins[key] = [];
       bins[key].push(row);
     });
@@ -264,14 +269,46 @@ const Resampler = {
 const Merger = {
 
   merge(sensorResampled, refResampled) {
-    const refMap = {};
-    refResampled.forEach(r => { refMap[r.Timestamp.getTime()] = r; });
+    if (!sensorResampled.length || !refResampled.length) return [];
+
+    // Sort reference by time for binary search
+    const refArr   = refResampled.slice().sort((a,b) => a.Timestamp - b.Timestamp);
+    const refTimes = refArr.map(r => r.Timestamp.getTime());
+
+    // Auto-detect the reference's natural sampling interval (median gap)
+    // so we can set a tolerance even when the user chooses a finer resolution.
+    let refNatural = Infinity;
+    if (refArr.length > 1) {
+      const gaps = [];
+      for (let i = 1; i < refArr.length; i++)
+        gaps.push(refTimes[i] - refTimes[i-1]);
+      gaps.sort((a,b) => a-b);
+      refNatural = gaps[Math.floor(gaps.length / 2)]; // median gap
+    }
+    // Each sensor bin matches the closest reference bin within ±half the
+    // reference's natural interval (so every sensor bin gets a reference value).
+    const tol = refNatural / 2;
+
+    UI.info(`Reference natural interval: ${(refNatural/1000).toFixed(0)} s  |  match tolerance: ±${(tol/1000).toFixed(0)} s`);
+    if (refNatural > State.intervalSec * 1000) {
+      UI.warn(`Selected resolution (${State.intervalSec}s) is finer than reference interval (~${(refNatural/1000).toFixed(0)}s). Each reference reading will be reused for multiple sensor bins.`);
+    }
 
     const rows = [];
     sensorResampled.forEach(sr => {
-      const rr = refMap[sr.Timestamp.getTime()];
-      if (!rr) return;
+      const t = sr.Timestamp.getTime();
 
+      // Binary search: find index of closest reference timestamp
+      let lo = 0, hi = refTimes.length - 1, bestIdx = -1, bestDiff = Infinity;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const diff = Math.abs(refTimes[mid] - t);
+        if (diff < bestDiff) { bestDiff = diff; bestIdx = mid; }
+        if (refTimes[mid] < t) lo = mid + 1; else hi = mid - 1;
+      }
+      if (bestIdx < 0 || bestDiff > tol) return; // outside tolerance
+
+      const rr  = refArr[bestIdx];
       const row = { Timestamp: sr.Timestamp };
       State.selectedParams.forEach(p => {
         row[`${p}_sensor`]    = sr[p];
@@ -284,6 +321,7 @@ const Merger = {
     return rows;
   },
 };
+
 
 /* ── REGRESSION ─────────────────────────────────────────── */
 const Regression = {
@@ -389,18 +427,23 @@ const Metrics = {
 const Aligner = {
 
   /* Apply shift offsets and return realigned sensor/ref arrays.
-     A positive sensorShift means sensor rows are moved forward
-     (sensor[i] aligns with ref[i + sensorShift]).              */
+     Direction convention (intuitive / visual):
+       sensorShift = +1  →  right arrow pressed  →  sensor series moves RIGHT in the plot
+                            achieved by: at time grid[i], use sensor value from index i-1
+                            (an earlier sensor reading appears at a later timestamp)
+       sensorShift = -1  →  left arrow  →  sensor series moves LEFT
+     The output timestamp is always merged[i].Timestamp (fixed grid, no drift).      */
   apply(merged, sensorShift, refShift) {
     const n = merged.length;
     const rows = [];
     for (let i = 0; i < n; i++) {
-      const si = i + sensorShift;
-      const ri = i + refShift;
+      // Negate the shift: right (+1) → pick from i-1 so value appears later → moves RIGHT
+      const si = i - sensorShift;
+      const ri = i - refShift;
       if (si < 0 || si >= n || ri < 0 || ri >= n) continue;
       const sRow = merged[si];
       const rRow = merged[ri];
-      const row  = { Timestamp: sRow.Timestamp };
+      const row  = { Timestamp: merged[i].Timestamp }; // fixed time grid
       State.selectedParams.forEach(p => {
         row[`${p}_sensor`]    = sRow[`${p}_sensor`];
         row[`${p}_reference`] = rRow[`${p}_reference`];
@@ -468,16 +511,17 @@ const Plotter = {
   timeseries(divId, timestamps, refVals, rawSensor, simpleCal, mlrCal, param) {
     const ts = timestamps.map(t => t.toISOString());
     Plotly.newPlot(divId, [
-      { x:ts, y:refVals,   mode:'lines', name:'Reference',        line:{color:'red',   dash:'solid',  width:2} },
-      { x:ts, y:rawSensor, mode:'lines', name:'Raw Sensor',       line:{color:'blue',  dash:'solid',  width:1.5} },
-      { x:ts, y:simpleCal, mode:'lines', name:'Simple Calibrated',line:{color:'blue',  dash:'dash',   width:1.5} },
-      { x:ts, y:mlrCal,    mode:'lines', name:'MLR Calibrated',   line:{color:'blue',  dash:'dot',    width:1.5} },
+      { x:ts, y:refVals,   mode:'lines', name:'Reference',     line:{color:'red', dash:'solid', width:2.5} },
+      { x:ts, y:rawSensor, mode:'lines', name:'Raw Sensor',               line:{color:'blue', dash:'solid', width:1.5} },
+      { x:ts, y:simpleCal, mode:'lines', name:'Simple Linear Calibrated', line:{color:'green', dash:'dash',  width:1.5} },
+      { x:ts, y:mlrCal,    mode:'lines', name:'MLR Calibrated',           line:{color:'orange', dash:'dot',   width:1.5} },
     ], {
       title: `${param} — Time Series`,
-      xaxis:{ title:'Time', type:'date', rangeslider:{} },
+      xaxis:{ title:'Time', type:'date', rangeslider:{visible:true} },
       yaxis:{ title:param, zeroline:false },
-      legend:{ orientation:'h', y:-0.3 },
-      margin:{t:50,b:80,l:60,r:20},
+      showlegend: true,
+      legend:{ orientation:'h', x:0, y:-1.5, bgcolor:'rgba(255,255,255,0.8)', bordercolor:'#ccc', borderwidth:1 },
+      margin:{t:50,b:150,l:60,r:20},
     }, {responsive:true});
   },
 };
@@ -671,7 +715,7 @@ function doMerge() {
   State.sensorShift = 0; State.refShift = 0;
   document.getElementById('sensorShiftVal').textContent = '0';
   document.getElementById('refShiftVal').textContent    = '0';
-  if (!State.mergedData.length) { UI.fail('No matching timestamps — try a different interval.'); return; }
+  if (!State.mergedData.length) { UI.fail('No matching timestamps — reference may have no overlap with sensor range, or check your data.'); return; }
   UI.pass('Merged rows: '+State.mergedData.length);
   renderMergePreview(State.mergedData);
   UI.progress(75);
