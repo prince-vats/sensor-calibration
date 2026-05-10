@@ -125,6 +125,16 @@ body {
 }
 .info-panel.open { max-height: 400px; }
 
+.info-panel a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.info-panel a:hover {
+  opacity: 0.85;
+  text-decoration: underline;
+}
+
 .info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

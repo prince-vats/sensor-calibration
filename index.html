@@ -32,7 +32,7 @@
     <h1>Sensor <span>Calibration</span> Tool</h1>
     <p class="hero-sub">Browser-only &middot; No backend &middot; Research grade &middot; Publication quality outputs
     </p>
-    <button class="info-toggle" id="infoToggle">📋 File Requirements &amp; Assumptions</button>
+    <button class="info-toggle" id="infoToggle">📋 File Requirements &amp; Assumptions (Click to Review)</button>
   </header>
 
   <!-- ── COLLAPSIBLE INFO PANEL ──────────────────────────── -->
@@ -41,21 +41,25 @@
       <div class="info-block">
         <h3>📂 File Requirements</h3>
         <ul>
-          <li>First column must be named exactly <code>Timestamp</code></li>
-          <li>Sensor file must include <code>T</code> and <code>RH</code> columns</li>
-          <li>Selected parameter columns must match exactly (case-sensitive)</li>
-          <li>Accepts: <code>.csv</code> · <code>.xls</code> · <code>.xlsx</code></li>
-          <li>Non-numeric values → NaN; rows with NaN dropped automatically</li>
+          <li>First column must be named exactly <code>Timestamp</code>.</li>
+          <li>Sensor file must include <code>T</code> and <code>RH</code> columns.</li>
+          <li>Selected parameter columns must match exactly (case-sensitive).</li>
+          <li>Accepts: <code>.csv</code> · <code>.xls</code> · <code>.xlsx</code>.</li>
+          <li>Non-numeric values → NaN; rows with NaN dropped automatically.</li>
         </ul>
+        <p style="margin-top:14px;">📘<a href="./README.md" target="_blank" rel="noopener">Read full documentation ↗</a>
+        </p>
+        <p>⬇️ Sample files: <a href="./sample_data/EQM9.csv" download>Sensor Data</a>, <a
+            href="./sample_data/CAAQMS.xlsx" download>Reference Data</a></p>
       </div>
       <div class="info-block">
         <h3>⚙️ Assumptions</h3>
         <ul>
-          <li>Timezone differences are <strong>ignored</strong> — raw parsed timestamps used</li>
-          <li>Resampling uses <strong>interval-end labeling</strong> aligned to local timezone</li>
-          <li>Merge uses nearest-neighbor with auto-detected reference interval tolerance</li>
-          <li>MLR uses normal equations in pure JavaScript (no external library)</li>
-          <li>Timestamp export format: <code>DD-MM-YYYY HH:mm:ss</code></li>
+          <li>Timezone differences are <strong>ignored</strong> — raw parsed timestamps used.</li>
+          <li>Resampling uses <strong>interval-end labeling</strong> aligned to local timezone.</li>
+          <li>Merge uses nearest-neighbor with auto-detected reference interval tolerance.</li>
+          <li>MLR uses normal equations in pure JavaScript (no external library).</li>
+          <li>Timestamp export format: <code>DD-MM-YYYY HH:mm:ss</code>.</li>
         </ul>
       </div>
     </div>
@@ -97,7 +101,8 @@
             <span class="step-num">02</span>
             <h2>Sensor Dataset</h2>
           </div>
-          <p class="card-hint">Must contain: Timestamp, selected params, T, RH</p>
+          <p class="card-hint">Must contain: Timestamp, selected params, T, RH. <br> The filename (without extension)
+            will be used as the series label in plots.</p>
           <label class="drop-zone" for="sensorFile">
             <input type="file" id="sensorFile" accept=".csv,.xls,.xlsx" />
             <span class="drop-icon">📂</span>
@@ -112,7 +117,8 @@
             <span class="step-num">03</span>
             <h2>Reference Dataset</h2>
           </div>
-          <p class="card-hint">Must contain: Timestamp, selected params</p>
+          <p class="card-hint">Must contain: Timestamp, selected params. <br> The filename (without extension) will be
+            used as the series label in plots.</p>
           <label class="drop-zone" for="referenceFile">
             <input type="file" id="referenceFile" accept=".csv,.xls,.xlsx" disabled />
             <span class="drop-icon">📂</span>
@@ -189,14 +195,14 @@
           <span class="align-label">⟳ Peak Alignment</span>
 
           <div class="align-group-inline">
-            <span class="align-tag sensor-tag">Sensor</span>
+            <span class="align-tag sensor-tag" id="sensorTagLabel">Sensor</span>
             <button id="sensorShiftLeft" title="Shift sensor left">◄</button>
             <span id="sensorShiftVal" class="shift-val">0</span>
             <button id="sensorShiftRight" title="Shift sensor right">►</button>
           </div>
 
           <div class="align-group-inline">
-            <span class="align-tag ref-tag">Reference</span>
+            <span class="align-tag ref-tag" id="refTagLabel">Reference</span>
             <button id="refShiftLeft" title="Shift reference left">◄</button>
             <span id="refShiftVal" class="shift-val">0</span>
             <button id="refShiftRight" title="Shift reference right">►</button>
