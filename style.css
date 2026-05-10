@@ -1,0 +1,411 @@
+/* === SENSOR CALIBRATION TOOL — STYLESHEET === */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --pass: #1a7a1a;
+  --fail: #c0392b;
+  --warn: #b7770d;
+  --bg: #f8f8f8;
+  --section-bg: #ffffff;
+  --border: #cccccc;
+  --code-bg: #f0f0f0;
+  --text: #111111;
+  --muted: #555555;
+  --accent: #1a5276;
+  --step-hdr: #1a5276;
+}
+
+body {
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 16px;
+  line-height: 1.55;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 6px;
+}
+
+h1 small {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: normal;
+  margin-left: 12px;
+}
+
+h2 {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--step-hdr);
+  margin-bottom: 10px;
+  border-left: 4px solid var(--accent);
+  padding-left: 8px;
+}
+
+h3 {
+  font-size: 13px;
+  font-weight: bold;
+  margin: 10px 0 6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+p { margin-bottom: 6px; }
+
+/* === LAYOUT === */
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 800px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* === STICKY PANELS === */
+
+.sticky-panels {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 0 10px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .sticky-panels { grid-template-columns: 1fr; position: static; }
+}
+
+/* === SECTION CARDS === */
+
+.section {
+  background: var(--section-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.section.locked {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.panel {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.panel ul { padding-left: 16px; }
+.panel li { margin-bottom: 2px; }
+
+/* === STATUS LOG === */
+
+#statusLog {
+  max-height: 220px;
+  overflow-y: auto;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  border-radius: 3px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.log-pass  { color: #5dbb5d; }
+.log-fail  { color: #e05252; }
+.log-warn  { color: #e0a020; }
+.log-info  { color: #7ec8e3; }
+.log-step  { color: #ffffff; font-weight: bold; margin-top: 4px; }
+.log-muted { color: #888888; }
+
+/* === PARAMETER CHECKBOXES === */
+
+.param-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 6px;
+}
+
+.param-grid label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.param-grid input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+#selectedParamsDisplay {
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+#selectedParamsDisplay strong { color: var(--text); }
+
+/* === FILE UPLOAD === */
+
+.file-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: border-color 0.2s;
+}
+
+.file-upload-area:hover { border-color: var(--accent); }
+.file-upload-area input[type="file"] { display: none; }
+.file-upload-area .file-label { color: var(--accent); cursor: pointer; }
+.file-name { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+.validation-log {
+  margin-top: 8px;
+  font-size: 12px;
+  max-height: 140px;
+  overflow-y: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 6px 8px;
+}
+
+.pass { color: var(--pass); }
+.fail { color: var(--fail); }
+.warn { color: var(--warn); }
+
+/* === OVERLAP === */
+
+#overlapResult {
+  padding: 8px;
+  border-radius: 3px;
+  font-size: 12.5px;
+  margin-top: 6px;
+}
+
+#overlapResult.ok   { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+#overlapResult.fail { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+/* === RESOLUTION DROPDOWN === */
+
+select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* === BUTTONS === */
+
+button {
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+button:hover:not(:disabled) { background: #e8e8e8; border-color: #999; }
+
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+button.primary:hover:not(:disabled) { background: #154360; }
+
+button.danger  { border-color: var(--fail); color: var(--fail); }
+button.success { border-color: var(--pass); color: var(--pass); }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+
+/* === PROGRESS BAR === */
+
+.progress-bar-wrap {
+  background: #ddd;
+  border-radius: 3px;
+  height: 8px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+  width: 0%;
+}
+
+/* === MERGED DATASET PREVIEW === */
+
+.preview-wrap {
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11.5px;
+}
+
+thead { position: sticky; top: 0; background: #e8e8e8; z-index: 1; }
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  white-space: nowrap;
+  text-align: right;
+}
+
+th { font-weight: bold; text-align: center; background: #e0e0e0; }
+td:first-child { text-align: left; }
+
+.meta-row { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.meta-row strong { color: var(--text); }
+
+/* === METRICS TABLE === */
+
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.metrics-table th { background: #d0d8e4; }
+.metrics-table td { text-align: right; }
+.metrics-table td:first-child { text-align: left; font-weight: bold; }
+
+.metrics-equation {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 6px 10px;
+  margin: 6px 0;
+  font-size: 12.5px;
+}
+
+/* === PLOTLY CONTAINERS === */
+
+.plot-container {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  margin-top: 10px;
+  min-height: 350px;
+  background: #fff;
+}
+
+.param-section {
+  border: 1px solid #b0b8c4;
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: #fafbfc;
+}
+
+.param-section h3 { color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 10px; }
+
+/* === ALIGNMENT === */
+
+.align-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.align-group {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px 12px;
+  background: var(--code-bg);
+}
+
+.align-group label { font-weight: bold; display: block; margin-bottom: 6px; }
+
+.shift-display {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* === TABS === */
+
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  cursor: pointer;
+  background: var(--code-bg);
+  font-size: 12.5px;
+  color: var(--muted);
+  position: relative;
+  bottom: -1px;
+}
+
+.tab.active {
+  background: #fff;
+  color: var(--accent);
+  font-weight: bold;
+  border-color: var(--border);
+  border-bottom: 2px solid #fff;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* === SCROLLBAR === */
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: #f0f0f0; }
+::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #999; }

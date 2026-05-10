@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sensor Calibration Tool</title>
+<meta name="description" content="Browser-only research-grade environmental sensor calibration tool. No backend required." />
+
+<!-- CDN Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist@2.35.2/plotly.min.js"></script>
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>Sensor Calibration Tool <small>Browser-Only · No Backend · Research Grade</small></h1>
+
+<!-- ===================== STICKY ALWAYS-VISIBLE PANELS ===================== -->
+<div class="sticky-panels">
+
+  <div class="panel" id="reqPanel">
+    <h3>📋 File Requirements</h3>
+    <ul>
+      <li>First column must be named exactly <strong>Timestamp</strong></li>
+      <li>Sensor file must include <strong>T</strong> and <strong>RH</strong> columns</li>
+      <li>Selected parameter columns must match exactly (case-sensitive)</li>
+      <li>Accepts: <strong>.csv · .xls · .xlsx</strong></li>
+      <li>Timestamp must be a valid parseable datetime</li>
+      <li>Non-numeric values → NaN; rows with NaN are dropped automatically</li>
+    </ul>
+  </div>
+
+  <div class="panel" id="assumpPanel">
+    <h3>⚙️ Assumptions</h3>
+    <ul>
+      <li>Timezone differences are <strong>ignored</strong> — raw parsed timestamps used</li>
+      <li>Resampling uses <strong>interval-end labeling</strong>: e.g., data from 1:00–1:59 → labeled <strong>2:00</strong></li>
+      <li>Merging is done by exact timestamp match after resampling</li>
+      <li>MLR uses normal equations (no external library)</li>
+      <li>Calibrated = applying regression equation to sensor values</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- ===================== PROCESSING STATUS PANEL ===================== -->
+<div class="section">
+  <h2>🖥️ Processing Status</h2>
+  <div style="margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+    <span id="statusCurrentStep" style="font-weight:bold; color:#1a5276;">Waiting for input…</span>
+    <span id="statusPct" style="color:#555;">0%</span>
+  </div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div id="statusLog"></div>
+</div>
+
+<!-- ===================== STEP 1: PARAMETERS ===================== -->
+<div class="section" id="step1Section">
+  <h2>STEP 1 — Select Calibration Parameters</h2>
+  <p style="color:#555; font-size:12px;">Select one or more parameters. These must be present as column names in both uploaded files.</p>
+  <div class="param-grid" id="paramGrid">
+    <label><input type="checkbox" value="PM2.5" id="cbPM25"> PM2.5</label>
+    <label><input type="checkbox" value="PM10"  id="cbPM10"> PM10</label>
+    <label><input type="checkbox" value="CO2"   id="cbCO2"> CO2</label>
+    <label><input type="checkbox" value="CO"    id="cbCO"> CO</label>
+    <label><input type="checkbox" value="NO2"   id="cbNO2"> NO2</label>
+    <label><input type="checkbox" value="O3"    id="cbO3"> O3</label>
+    <label><input type="checkbox" value="SO2"   id="cbSO2"> SO2</label>
+    <label><input type="checkbox" value="NH3"   id="cbNH3"> NH3</label>
+    <label><input type="checkbox" value="VOC"   id="cbVOC"> VOC</label>
+  </div>
+  <div id="selectedParamsDisplay">Selected: <strong>None</strong></div>
+</div>
+
+<!-- ===================== STEP 2 + 3: FILE UPLOADS ===================== -->
+<div class="grid-2">
+
+  <!-- STEP 2: Sensor File -->
+  <div class="section" id="step2Section">
+    <h2>STEP 2 — Upload Sensor Dataset</h2>
+    <p style="color:#555; font-size:12px;">Must contain: Timestamp, selected parameters, T, RH</p>
+    <div class="file-upload-area" id="sensorDropZone">
+      <input type="file" id="sensorFile" accept=".csv,.xls,.xlsx" />
+      <label class="file-label" for="sensorFile">📂 Click to choose sensor file</label>
+      <div class="file-name" id="sensorFileName">No file selected</div>
+    </div>
+    <div class="validation-log" id="sensorStatus"></div>
+  </div>
+
+  <!-- STEP 3: Reference File -->
+  <div class="section locked" id="step3Section">
+    <h2>STEP 3 — Upload Reference Dataset</h2>
+    <p style="color:#555; font-size:12px;">Must contain: Timestamp, selected parameters</p>
+    <div class="file-upload-area" id="refDropZone">
+      <input type="file" id="referenceFile" accept=".csv,.xls,.xlsx" disabled />
+      <label class="file-label" for="referenceFile">📂 Click to choose reference file</label>
+      <div class="file-name" id="refFileName">No file selected</div>
+    </div>
+    <div class="validation-log" id="referenceStatus"></div>
+  </div>
+
+</div>
+
+<!-- ===================== STEP 4: OVERLAP ===================== -->
+<div class="section locked" id="step4Section">
+  <h2>STEP 4 — Temporal Overlap Check</h2>
+  <div id="overlapResult"></div>
+</div>
+
+<!-- ===================== STEP 5: RESOLUTION ===================== -->
+<div class="section locked" id="step5Section">
+  <h2>STEP 5 — Select Calibration Resolution</h2>
+  <label for="resolutionSelect" style="font-weight:bold;">Averaging Interval:</label>
+  <select id="resolutionSelect">
+    <option value="1">1 second</option>
+    <option value="60">1 minute</option>
+    <option value="300">5 minutes</option>
+    <option value="900">15 minutes</option>
+    <option value="1800">30 minutes</option>
+    <option value="3600" selected>1 hour</option>
+    <option value="43200">12 hours</option>
+    <option value="86400">24 hours</option>
+  </select>
+  <p style="color:#555; font-size:12px; margin-top:6px;">
+    Interval-end labeling: data from <em>t</em> to <em>t + interval − 1s</em> is labeled at <em>t + interval</em>.
+  </p>
+</div>
+
+<!-- ===================== STEP 6: RESAMPLE & MERGE ===================== -->
+<div class="section locked" id="step6Section">
+  <h2>STEP 6 — Resample &amp; Merge</h2>
+  <div class="btn-row">
+    <button class="primary" id="prepareBtn" disabled>▶ Run Resample &amp; Merge</button>
+    <span id="mergeStatusText" style="color:#555; font-size:12px;"></span>
+  </div>
+
+  <div id="mergedMeta" style="margin-top:10px; display:none;">
+    <div class="meta-row">Rows: <strong id="mergedRows">—</strong></div>
+    <div class="meta-row">Start: <strong id="mergedStart">—</strong></div>
+    <div class="meta-row">End: <strong id="mergedEnd">—</strong></div>
+    <div class="meta-row">Interval: <strong id="mergedInterval">—</strong></div>
+  </div>
+
+  <div class="preview-wrap" id="previewWrap" style="display:none;">
+    <table id="previewTable"></table>
+  </div>
+</div>
+
+<!-- ===================== STEP 7: CALIBRATION ANALYSIS ===================== -->
+<div class="section locked" id="step7Section">
+  <h2>STEP 7 — Calibration Analysis</h2>
+
+  <div class="tab-bar" id="analysisTabs"></div>
+
+  <div id="analysisContent"></div>
+</div>
+
+<!-- ===================== STEP 8: PEAK ALIGNMENT ===================== -->
+<div class="section locked" id="step8Section">
+  <h2>STEP 8 — Manual Peak Alignment</h2>
+  <p style="color:#555; font-size:12px; margin-bottom:8px;">
+    Shift sensor or reference dataset by ±N time indices to correct temporal misalignment.
+    All regressions, metrics, and plots update automatically.
+  </p>
+  <div class="align-controls">
+    <div class="align-group">
+      <label>Sensor Dataset</label>
+      <div class="btn-row">
+        <button id="sensorShiftLeft"  title="Shift sensor left">◀ Left</button>
+        <button id="sensorShiftRight" title="Shift sensor right">Right ▶</button>
+      </div>
+      <div class="shift-display">Offset: <span id="sensorShiftVal">0</span> indices</div>
+    </div>
+    <div class="align-group">
+      <label>Reference Dataset</label>
+      <div class="btn-row">
+        <button id="refShiftLeft"  title="Shift reference left">◀ Left</button>
+        <button id="refShiftRight" title="Shift reference right">Right ▶</button>
+      </div>
+      <div class="shift-display">Offset: <span id="refShiftVal">0</span> indices</div>
+    </div>
+    <div>
+      <button id="resetAlignment" class="danger">↺ Reset Alignment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== STEP 9: DOWNLOAD ===================== -->
+<div class="section locked" id="step9Section">
+  <h2>STEP 9 — Download Results</h2>
+  <p style="color:#555; font-size:12px; margin-bottom:8px;">
+    Export includes: merged dataset + calibrated columns + alignment offsets + regression equations.
+    Excel export includes a separate Metrics Summary sheet.
+    Timestamps formatted as <code>DD-MM-YYYY HH:mm:ss</code>.
+  </p>
+  <div class="btn-row">
+    <button class="success" id="downloadCSV"   disabled>⬇ Download CSV</button>
+    <button class="success" id="downloadExcel" disabled>⬇ Download Excel</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
