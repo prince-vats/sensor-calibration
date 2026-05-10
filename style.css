@@ -593,8 +593,32 @@ tr:hover td { background: var(--surface-2); }
   margin-bottom: 8px;
   color: var(--primary);
   word-break: break-all;
+  position: relative;
 }
 .metrics-equation strong { color: var(--text-muted); font-family: var(--sans); }
+
+/* equation header row: label + copy button side by side */
+.eq-label { display: inline; }
+
+.copy-eq-btn {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  font-size: 13px;
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.copy-eq-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
 .metrics-table {
   width: 100%;
   border-collapse: collapse;
